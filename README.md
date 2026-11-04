@@ -1,6 +1,10 @@
 <div align="center">
 
-# Sustainable Cities Tutorial — Classroom Board
+# 🎉 Class Confetti
+
+**A cheerful, real-time classroom board. Post ideas, images, links and PDFs, and watch the confetti pile up.**
+
+Plain HTML/CSS/JS · Firebase Auth + Firestore · No framework, no bundler
 
 [![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/HTML)
 [![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/CSS)
@@ -9,240 +13,186 @@
 [![Firestore](https://img.shields.io/badge/Firestore-FFA000?style=for-the-badge&logo=firebase&logoColor=white)](https://firebase.google.com/products/firestore)
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-222?style=for-the-badge&logo=github&logoColor=white)](https://pages.github.com/)
 
-**Real-time Padlet-style collaborative board for Week 12 Sustainable Cities Tutorial: T53_56**
-
-Plain HTML/CSS/JS · Firebase Auth + Firestore + Storage · No build step
+![Class Confetti landing page](screenshot.png)
 
 </div>
 
-## Screenshot
+## What it does
 
-![Screenshot](screenshot.png)
+- **Classrooms.** A trainer creates a classroom and gets a 6-character code. Students join with the code or a `?room=CODE` link. Whoever creates a classroom is its *trainer*.
+- **Guest or Google sign-in.** Guests just type a nickname. Trainers should sign in with Google so trainer access follows their account across devices.
+- **Colourful sections.** A board is a row of columns, with optional sub-sections. Anyone signed in can add a section. Authors drag their own posts between sections, and trainers reorder columns by dragging the header.
+- **Rich posts.** Subject, description, multiple images (shrunk in the browser), PDFs (rendered page by page) and links with previews, YouTube thumbnails and embedded players.
+- **Real time.** Posts, sections, likes, comments and the announcement banner update live for everyone.
+- **Likes, comments, search and sort.** Heart a post, comment on it, search by text or author, sort by newest, oldest or most liked.
+- **Trainer tools.** Edit the classroom title and announcement, delete any post or comment in your classroom, or delete the whole classroom.
+- **Light and dark themes**, mobile friendly, and motion that respects `prefers-reduced-motion`.
 
-## About
+<details>
+<summary>More screenshots (sample content)</summary>
 
-A single-page collaborative board where students can post ideas, upload images, comment, and like — all in real time. Built intentionally without a build step or framework so it can be served from any static host (including GitHub Pages) and edited by reloading the browser.
+These two are the real stylesheet rendered with illustrative sample posts.
 
-### Key Features
+![Sample board, light theme](screenshot-board.png)
 
-- **Auth** — Anonymous sign-in (with optional nickname) or Google.
-- **Posts** — Title, description, category, optional image upload, optional link.
-- **Categories** — Urban Planning · Green Transport · Renewable Energy · Waste Management · Smart Cities · Water Sustainability · Community Ideas.
-- **Real-time** — Posts, likes, comments, and the announcement banner update live across all connected users.
-- **Likes & Comments** — One-tap heart toggle; threaded comments inside the post detail modal.
-- **Edit / delete** — Authors manage their own posts and comments.
-- **Admin** — Pin posts, delete any post or comment, edit announcement banner, export CSV.
-- **Search & filter** — Free-text search, category filter, sort by newest / oldest / most liked.
-- **UI** — Masonry layout, light/dark theme, FAB, toasts, online indicator, mobile responsive.
+![Sample board, dark theme](screenshot-board-dark.png)
 
-## Tech Stack
+</details>
 
-| Category       | Technology                                       |
-| -------------- | ------------------------------------------------ |
-| Frontend       | HTML5, CSS3, Vanilla JavaScript (ES Modules)     |
-| Auth           | Firebase Authentication (Anonymous + Google)     |
-| Database       | Cloud Firestore (real-time subscriptions)        |
-| Storage        | Firebase Storage (post images)                   |
-| Hosting        | GitHub Pages / any static host                   |
-| Tooling        | None — no bundler, no package manager, no tests  |
+## Quick start
 
-## Architecture
+### 1. Set up Firebase
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                     Browser (index.html)                   │
-│                                                            │
-│   styles.css        js/main.js  ◄── owns state + DOM       │
-│                          │                                 │
-│      ┌───────────────────┼─────────────────────┐           │
-│      ▼                   ▼                     ▼           │
-│   ui.js               auth.js              admin.js        │
-│   (DOM helpers)       posts.js             (CSV export)    │
-│                       comments.js                          │
-│                       settings.js                          │
-│                          │                                 │
-│                          ▼                                 │
-│                      firebase.js  (auth/db/storage)        │
-└──────────────────────────┼─────────────────────────────────┘
-                           │  modular SDK 12.12.1
-                           ▼
-            ┌──────────────────────────────┐
-            │   Firebase (gstatic CDN)     │
-            │   Auth · Firestore · Storage │
-            └──────────────────────────────┘
+1. In the [Firebase console](https://console.firebase.google.com/), create or pick a project and add a **Web app** (the `</>` icon). Keep its config handy.
+2. **Authentication → Sign-in method:** enable **Anonymous** and **Google**.
+3. **Firestore Database → Create database**, then publish the rules in [`firestore.rules`](firestore.rules) (see [Firestore rules](#firestore-rules)). Firebase Storage is *not* used: images and PDF pages are stored in Firestore.
+4. **Authentication → Settings → Authorized domains:** `localhost` is there by default. Add your deployed domain (for example `your-name.github.io`) before using Google sign-in there.
+5. If you restrict your API key by HTTP referrer (recommended, see [About the API key](#about-the-api-key)), allow `http://localhost:8000/*` for development plus your deployed domain. Otherwise sign-in fails with a "requests from referer ... are blocked" error.
+
+### 2. Configure
+
+```bash
+cp .env.example .env              # Windows PowerShell: Copy-Item .env.example .env
+# open .env and paste your Firebase values
+node scripts/generate-config.mjs
 ```
 
-## Project Structure
+### 3. Run
 
-```
-.
-├── index.html              # Single-page shell
-├── styles.css              # All styling (light + dark theme)
-├── js/
-│   ├── config.js           # Firebase config + admin emails  (gitignored)
-│   ├── config.example.js   # Template — copy to config.js
-│   ├── firebase.js         # initializeApp + auth/db/storage singletons
-│   ├── auth.js             # Anonymous + Google sign-in
-│   ├── posts.js            # Post CRUD + real-time subscription
-│   ├── comments.js         # Comment CRUD + real-time subscription
-│   ├── settings.js         # Announcement banner read/write
-│   ├── admin.js            # Admin check + CSV export
-│   ├── ui.js               # DOM helpers, modal, toast
-│   └── main.js             # Boot + render + wiring
-├── screenshot.png
-└── README.md
+```bash
+python -m http.server 8000 --bind 127.0.0.1     # Windows: py -m http.server 8000 --bind 127.0.0.1
 ```
 
-## Setup
+Open <http://localhost:8000>. Edit a file, reload, done. Re-run the `node` command only when `.env` changes.
 
-The Firebase project (`padlet-7c3eb`) already exists. Steps to wire it up:
+## Configuration
 
-1. **Auth providers** — Firebase Console → Authentication → Sign-in method → enable **Anonymous** and **Google**.
-2. **Firestore** — Create database (production mode). Paste the rules from [Firestore rules](#firestore-rules) below.
-3. **Storage** — Click "Get Started" in Storage. Paste the rules from [Storage rules](#storage-rules) below.
-4. **Local config** — copy the template:
-   ```bash
-   cp js/config.example.js js/config.js
-   ```
-   Then paste your real Firebase config into `js/config.js`. That file is gitignored.
-5. **Admin emails** — edit `ADMIN_EMAILS` in `js/config.js` to list teacher accounts.
-6. **Run locally**:
-   ```bash
-   python3 -m http.server 8000
-   ```
-   Open http://localhost:8000.
+Browsers can't read a `.env` file, so a small dependency-free script turns it into the module the app imports:
 
-> **API key note.** Firebase web API keys are public-by-design; they identify the project, not authorize it. Real protection comes from the security rules below and (recommended) restricting the key by HTTP referrer in the Google Cloud Console before deploying publicly.
+```
+.env  ──  node scripts/generate-config.mjs  ──▶  js/config.js  ──▶  js/firebase.js
+(yours, gitignored)                              (generated, gitignored)
+```
+
+| Variable in `.env`             | Firebase config key  | Required |
+| ------------------------------ | -------------------- | -------- |
+| `FIREBASE_API_KEY`             | `apiKey`             | yes      |
+| `FIREBASE_AUTH_DOMAIN`         | `authDomain`         | yes      |
+| `FIREBASE_DATABASE_URL`        | `databaseURL`        | no       |
+| `FIREBASE_PROJECT_ID`          | `projectId`          | yes      |
+| `FIREBASE_STORAGE_BUCKET`      | `storageBucket`      | yes      |
+| `FIREBASE_MESSAGING_SENDER_ID` | `messagingSenderId`  | yes      |
+| `FIREBASE_APP_ID`              | `appId`              | yes      |
+| `FIREBASE_MEASUREMENT_ID`      | `measurementId`      | no       |
+
+- Real environment variables win over `.env`. That is how the GitHub Actions deploy works, with no `.env` file at all.
+- The script exits with an error naming any missing variable, and never writes a half-filled config.
+- If `js/config.js` doesn't exist, the page shows a short "The app couldn't start" hint instead of hanging on "Loading…".
+- `FIREBASE_DATABASE_URL` is only for Realtime Database. This app uses Firestore, so it is accepted (so the generated config matches the console snippet) but unused.
+
+### About the API key
+
+Firebase web config identifies your project, it does not grant access to it, and anyone who opens your site can read it from the downloaded `js/config.js`. Keeping it in `.env` keeps it out of git and makes switching projects a one-file change, but it isn't a secret. What actually protects your data is:
+
+1. the [Firestore rules](#firestore-rules), and
+2. restricting the key under Google Cloud Console → APIs & Services → Credentials → your browser key → *Application restrictions → HTTP referrers*.
+
+The dev server serves the whole project folder, so never put server-side secrets (service-account keys, Admin SDK credentials) in `.env`.
+
+## Deploy to GitHub Pages
+
+1. Push the repo to GitHub, then **Settings → Pages → Source: GitHub Actions**.
+2. **Settings → Secrets and variables → Actions → New repository secret.** Add one secret per variable in the table above, named exactly the same (`FIREBASE_DATABASE_URL` and `FIREBASE_MEASUREMENT_ID` are optional).
+3. Push to `main`. [`deploy-pages.yml`](.github/workflows/deploy-pages.yml) runs `node scripts/generate-config.mjs` with those secrets and publishes the site. If a required secret is missing the deploy **fails** and names it, rather than publishing a broken site.
+4. Add `your-name.github.io` to Firebase **Authorized domains** and to your API key's allowed referrers.
+
+On Netlify, Vercel or Firebase Hosting, set the same variables, use `node scripts/generate-config.mjs` as the build command, and publish the project root.
 
 ## Firestore rules
 
-Paste into Firebase Console → Firestore → Rules.
-**Edit the `isAdmin()` function** to match your `ADMIN_EMAILS`.
+The security rules live in [`firestore.rules`](firestore.rules), the single source of truth. Any signed-in user (guests included) can read. Authors manage their own posts and comments. A classroom's trainer, the user who created its room document, can edit and delete anything in that classroom.
 
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{db}/documents {
-    function isSignedIn() { return request.auth != null; }
-    function isAdmin() {
-      return isSignedIn()
-        && request.auth.token.email in ['angch@tertiaryinfotech.com'];
-    }
-    // The trainer of a room is the user who created the room doc (which has
-    // type=="room" and shares the room code as its postId).
-    function isRoomTrainer(roomId) {
-      return isSignedIn()
-        && roomId != null
-        && exists(/databases/$(db)/documents/posts/$(roomId))
-        && get(/databases/$(db)/documents/posts/$(roomId)).data.authorId == request.auth.uid;
-    }
+Publish them with the Firebase CLI (nothing to install; it asks you to log in once):
 
-    match /posts/{postId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn()
-        && request.resource.data.authorId == request.auth.uid
-        && request.resource.data.pinned == false;
-      allow update: if isAdmin()
-        || (isSignedIn()
-            && resource.data.authorId == request.auth.uid
-            && request.resource.data.authorId == resource.data.authorId
-            && request.resource.data.pinned == resource.data.pinned)
-        || (isSignedIn()
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'updatedAt']))
-        // Trainer can pin/unpin and otherwise edit posts in their own room
-        || isRoomTrainer(resource.data.roomId);
-      allow delete: if isAdmin()
-        || (isSignedIn() && resource.data.authorId == request.auth.uid)
-        // Trainer can delete any post in their own room
-        || isRoomTrainer(resource.data.roomId);
-    }
-
-    match /comments/{commentId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-      allow delete: if isAdmin()
-        || (isSignedIn() && resource.data.authorId == request.auth.uid)
-        // Trainer can delete any comment on a post in their own room
-        || (isSignedIn()
-            && exists(/databases/$(db)/documents/posts/$(resource.data.postId))
-            && isRoomTrainer(get(/databases/$(db)/documents/posts/$(resource.data.postId)).data.roomId));
-      allow update: if false;
-    }
-
-    match /settings/board {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-  }
-}
+```bash
+npx firebase-tools login
+npx firebase-tools deploy --only firestore:rules --project YOUR_PROJECT_ID
 ```
 
-> **You must paste the updated rules into Firebase Console → Firestore → Rules.**
-> Without that step, the trainer-can-delete-any-post UI will fail with a permission error when the trainer tries to delete a non-own post.
+Or paste the file's contents into Firebase console → Firestore → Rules and publish.
 
-## Storage rules
+> **Sharing a Firebase project?** A Firestore database has exactly one ruleset, so deploying `firestore.rules` replaces whatever is there. If other apps already use this project's Firestore, merge the `match` blocks into your existing rules instead. This app only touches the top-level `posts` and `comments` collections.
+>
+> Realtime Database rules (`database.rules.json`) are a separate system and are **not** used by this app. [`firebase.json`](firebase.json) lists only Firestore on purpose, so deploying from this repo never touches your Realtime Database rules.
 
-Paste into Firebase Console → Storage → Rules.
+If you change the data model, the rules and the UI must change together, for example when a new field should be editable by anyone rather than only the author.
+
+### How the data is stored
+
+Everything except comments lives in one collection, `posts`, told apart by a `type` field:
+
+| `type`       | What it is                                        | Document id                     |
+| ------------ | ------------------------------------------------- | ------------------------------- |
+| `room`       | A classroom (title, announcement, trainer)        | the 6-character room code       |
+| `membership` | "this user joined this room", for cross-device lists | `mem_{uid}_{roomId}`         |
+| `section`    | A board column or sub-column                      | auto                            |
+| `post`       | A post, with images stored as compressed data URLs | auto                           |
+| `pdf-page`   | One rendered page of a PDF attached to a post     | auto                            |
+
+Comments are in `comments`, keyed to a post by `postId`. No composite indexes are required.
+
+### Good to know
+
+- **Classroom codes are not a security boundary.** The rules let any signed-in user (guests included) read posts, so anyone who can reach your site can read classroom content. Don't use this for sensitive material.
+- **Link previews go through public CORS proxies** (corsproxy.io, allorigins.win, codetabs.com), so URLs people paste are sent to those services. Previews are cached in the visitor's browser.
+- Limits: images up to 5 MB each (shrunk to 800 px), PDFs up to 10 MB and 80 rendered pages.
+
+## Project structure
 
 ```
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /post-images/{userId}/{file=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
-                   && request.auth.uid == userId
-                   && request.resource.size < 8 * 1024 * 1024
-                   && request.resource.contentType.matches('image/.*');
-      allow delete: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
+.
+├── index.html                 # Single-page shell, fonts, favicon
+├── styles.css                 # The whole theme: design tokens first, light + dark
+├── assets/
+│   ├── confetti-light.svg     # Seamless background tiles (plain SVG, hand-editable)
+│   └── confetti-dark.svg
+├── js/
+│   ├── main.js                # Boot, state, rendering, event wiring
+│   ├── rooms.js               # Classrooms, memberships, sections
+│   ├── posts.js               # Posts, likes, PDF page documents
+│   ├── comments.js
+│   ├── auth.js                # Guest + Google sign-in
+│   ├── firebase.js            # initializeApp + auth/db/storage singletons
+│   ├── ui.js                  # DOM helpers, modal, toast
+│   ├── admin.js               # CSV export helper (currently unused)
+│   └── config.js              # GENERATED from .env, gitignored
+├── scripts/
+│   └── generate-config.mjs    # .env -> js/config.js
+├── .env.example               # Template for your Firebase settings
+├── firestore.rules            # Firestore security rules (single source of truth)
+├── firebase.json              # Points the Firebase CLI at firestore.rules (Firestore only, on purpose)
+├── .github/workflows/deploy-pages.yml
+└── CLAUDE.md                  # Notes for working on the code with Claude Code
 ```
+
+## Make it yours
+
+- **Colours, type, shape.** Every colour, radius and shadow is a CSS variable at the top of `styles.css` (`:root` for light, `.dark` for the dark theme). `--sun`, `--coral`, `--mint`, `--sky`, `--grape`, `--tangerine` and `--pink` are the confetti palette, and text on a bright fill is always `--ink`. `--c1` to `--c7` colour the board columns in rotation.
+- **Background confetti.** Edit `assets/confetti-*.svg` directly (shapes, colours, opacity).
+- **Fonts.** Fredoka (headings) and Nunito (text), loaded from Google Fonts in `index.html`.
+- **Name.** "Class Confetti" appears in the `<title>` and footer of `index.html` and as the landing title in `js/main.js`.
 
 ## Smoke test
 
-Open the app in two browser windows side-by-side:
+Open two windows side by side (one normal, one private).
 
-1. Window A signs in anonymously as "Alex"; Window B signs in with Google as the admin.
-2. A creates a post with title, description, *Green Transport* category, an uploaded image, and a link → both windows see it instantly.
-3. B (admin) clicks **Pin** → the post jumps to the top in both windows.
-4. A clicks the heart → like count updates live in B.
-5. A opens the post and adds a comment → B sees the comment appear in real time.
-6. A edits their own post → updates everywhere; admin can also edit the announcement banner.
-7. B clicks **Export CSV** → a CSV downloads with one row per post.
-8. Toggle dark mode in either window → preference persists in localStorage.
-9. Search "transport", filter category "Green Transport", sort "Most liked" → board narrows correctly.
+1. Window A signs in with Google and creates a classroom. Window B joins as a guest with the code.
+2. A adds a section. B adds a post with an image and a link. Both windows show it instantly.
+3. B hearts and comments. A sees both live, then deletes B's comment as trainer.
+4. B drags their post to another section (A can't move B's post, B can).
+5. A edits the title and announcement. B sees them change live.
+6. Toggle the theme (🌓) in either window, then search and sort.
 
-## Deployment
+## Credits
 
-This is a static site — any host that serves files works. The repo is configured for **GitHub Pages** publishing from the repository root. After enabling Pages in the repository Settings, the live URL appears as `https://<owner>.github.io/<repo>/`.
-
-Other options:
-
-- **Netlify / Vercel** — drop the folder, no build command, publish directory `.`.
-- **Firebase Hosting** — `firebase init hosting` with public directory `.` and `firebase deploy`.
-
-## Contributing
-
-1. Fork the repo and create a feature branch.
-2. Edit a file and reload the browser — that's the full dev loop.
-3. Open a pull request with a short description and a screenshot if it's a UI change.
-
-## Developed By
-
-**Tertiary Infotech Academy Pte. Ltd.**
-
-## Acknowledgements
-
-- [Firebase](https://firebase.google.com/) for Auth, Firestore, and Storage.
-- [Padlet](https://padlet.com/) for inspiring the collaborative-board format.
-- Students of T53_56 for the Sustainable Cities tutorial content.
-
----
-
-<div align="center">
-
-If this project is useful to you, please ⭐ the repo.
-
-</div>
+Based on the classroom board by Tertiary Infotech Academy ([alfredang/padlet](https://github.com/alfredang/padlet)) and inspired by [Padlet](https://padlet.com/). Built with [Firebase](https://firebase.google.com/), [PDF.js](https://mozilla.github.io/pdf.js/), and the Fredoka and Nunito typefaces.

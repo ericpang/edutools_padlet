@@ -1,0 +1,58 @@
+rules_version = '2';
+
+// Firestore security rules for Class Confetti.
+//
+// Publish with:  npx firebase-tools deploy --only firestore:rules --project <your-project-id>
+// (or paste this file into Firebase console -> Firestore -> Rules). See README.md.
+//
+// Any signed-in user (guests included) can read. Authors manage their own documents.
+// The "trainer" of a classroom is the author of its room document (whose id is the room
+// code), and can edit and delete everything in that classroom.
+//
+// Everything except comments lives in the `posts` collection, told apart by a `type`
+// field (room, membership, section, post, pdf-page). Keep these rules and the data
+// model in sync, see CLAUDE.md.
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function isSignedIn() { return request.auth != null; }
+
+    // The trainer of a room is the user who created the room doc (which has
+    // type=="room" and shares the room code as its document id).
+    function isRoomTrainer(roomId) {
+      return isSignedIn()
+        && roomId != null
+        && exists(/databases/$(db)/documents/posts/$(roomId))
+        && get(/databases/$(db)/documents/posts/$(roomId)).data.authorId == request.auth.uid;
+    }
+
+    match /posts/{postId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.pinned == false;
+      allow update: if (isSignedIn()
+            && resource.data.authorId == request.auth.uid
+            && request.resource.data.authorId == resource.data.authorId
+            && request.resource.data.pinned == resource.data.pinned)
+        // Anyone signed in may like a post (touches only these fields)
+        || (isSignedIn()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'updatedAt']))
+        // Trainer can edit posts in their own room
+        || isRoomTrainer(resource.data.roomId);
+      allow delete: if (isSignedIn() && resource.data.authorId == request.auth.uid)
+        // Trainer can delete any post in their own room
+        || isRoomTrainer(resource.data.roomId);
+    }
+
+    match /comments/{commentId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+      allow delete: if (isSignedIn() && resource.data.authorId == request.auth.uid)
+        // Trainer can delete any comment on a post in their own room
+        || (isSignedIn()
+            && exists(/databases/$(db)/documents/posts/$(resource.data.postId))
+            && isRoomTrainer(get(/databases/$(db)/documents/posts/$(resource.data.postId)).data.roomId));
+      allow update: if false;
+    }
+  }
+}

@@ -3,10 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Padlet</title>
+<title>Class Confetti</title>
+<meta name="description" content="A cheerful, real-time classroom board for sharing ideas, images, links and PDFs." />
+<meta name="theme-color" content="#ffc93c" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎉%3C/text%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -41,7 +44,7 @@
   <main class="board" id="board"></main>
 
   <footer class="app-footer">
-    Powered by <a href="https://www.tertiarycourses.com.sg/" target="_blank" rel="noopener">Tertiary Infotech Academy Pte Ltd</a>
+    Made with <span aria-hidden="true">💛</span> for happy classrooms
   </footer>
 
   <button class="fab" id="fab" title="Add a post" hidden>+</button>
@@ -49,6 +52,22 @@
   <div id="modal-root"></div>
   <div id="toast-root"></div>
 
-  <script type="module" src="js/main.js"></script>
+  <script>
+    // Runs if js/main.js (or the js/config.js it imports) fails to load.
+    function showStartupHelp() {
+      document.getElementById("board-title").textContent = "Almost there!";
+      var board = document.getElementById("board");
+      board.textContent = "";
+      var box = document.createElement("div");
+      box.className = "empty-state";
+      var heading = document.createElement("h2");
+      heading.textContent = "The app couldn't start";
+      var hint = document.createElement("p");
+      hint.textContent = "If you just cloned this project, create js/config.js by running \"node scripts/generate-config.mjs\" (it reads your .env file). Otherwise, check your internet connection and reload.";
+      box.append(heading, hint);
+      board.append(box);
+    }
+  </script>
+  <script type="module" src="js/main.js" onerror="showStartupHelp()"></script>
 </body>
 </html>

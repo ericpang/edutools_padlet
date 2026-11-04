@@ -225,7 +225,7 @@ function showLanding() {
   document.getElementById("announcement").classList.add("hidden");
   document.getElementById("board-title-edit").hidden = true;
   document.getElementById("exit-room").hidden = true;
-  document.getElementById("board-title").textContent = "Padlet Classrooms";
+  document.getElementById("board-title").textContent = "Class Confetti";
   document.getElementById("board").classList.add("board-landing");
   renderLanding();
 }
@@ -499,7 +499,7 @@ function renderHeaderForRoom() {
   titleEl.innerHTML = "";
   const titleText = (state.room && state.room.title) || "Untitled Classroom";
   titleEl.append(document.createTextNode(titleText));
-  titleEl.append(el("span", { class: "room-code" }, " · " + state.roomId));
+  titleEl.append(el("span", { class: "room-code" }, state.roomId));
 }
 
 function renderUserArea() {
@@ -1268,7 +1268,7 @@ function buildDetailNode(p) {
   const trainer = isTrainer(state.user, state.room);
 
   const node = el("div", null);
-  if (p.pinned) node.append(el("span", { class: "category-chip", style: "background:var(--accent); color:white; margin-left:6px;" }, "📌 Pinned"));
+  if (p.pinned) node.append(el("span", { class: "category-chip pin-chip" }, "📌 Pinned"));
   node.append(el("h2", { class: "detail-title" }, p.title || "(Untitled)"));
   node.append(el("div", { class: "detail-meta" },
     "👤 " + (p.authorName || "Anon"),

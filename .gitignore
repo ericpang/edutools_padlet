@@ -1,8 +1,13 @@
 *.log
 .DS_Store
 
+# Local secrets - copy .env.example to .env
 .env
-.env.local
+.env.*
+!.env.example
+
+# Generated from .env by scripts/generate-config.mjs
+js/config.js
 
 # Local tool state
 .claude/
