@@ -18,9 +18,9 @@ There is no bundler, no tests, no linter, no package manager. The only tooling i
 ## Configuration
 
 - `.env` (gitignored) holds the Firebase **web** config as `FIREBASE_*` variables. `.env.example` is the committed template.
-- `scripts/generate-config.mjs` turns `.env` into `js/config.js` (gitignored, generated — never edit it by hand, it is overwritten). Real environment variables win over `.env`, which is how the GitHub Pages workflow supplies values from repository secrets. `js/firebase.js` imports `FIREBASE_CONFIG` from it.
-- Adding a config key means updating **all four**: `.env.example`, the `REQUIRED`/`OPTIONAL` maps in `scripts/generate-config.mjs`, the `env:` block in `.github/workflows/deploy-pages.yml`, and the table in `README.md`.
-- If `js/config.js` is missing the module graph fails to load and `index.html`'s `showStartupHelp()` shows a setup hint (a fresh clone needs the generator run).
+- `scripts/generate-config.mjs` turns `.env` into `js/config.js` (generated — never edit it by hand, it is overwritten). `js/config.js` is **committed** (Firebase web config is public), so regenerate and commit it whenever `.env` changes. Real environment variables win over `.env`: the GitHub Pages workflow regenerates it from `FIREBASE_*` repository secrets when they are set, and otherwise deploys the committed copy. `js/firebase.js` imports `FIREBASE_CONFIG` from it.
+- Adding a config key means updating **all four**: `.env.example`, the `REQUIRED`/`OPTIONAL` maps in `scripts/generate-config.mjs`, the `env:` block in `.github/workflows/deploy-pages.yml`, and the table in `README.md` — then regenerate and commit `js/config.js`.
+- If `js/config.js` is missing the module graph fails to load and `index.html`'s `showStartupHelp()` shows a setup hint (only if it was deleted or never committed; run the generator).
 - The dev server serves the whole folder, so `.env` must only ever contain Firebase web config (public by design) — never server-side secrets.
 - The Firestore security rules live in `firestore.rules` (the single source of truth; the README links to it rather than copying it). They must stay in sync with the data model below, so update both together. Publish with `npx firebase-tools deploy --only firestore:rules --project <id>`.
 - `firebase.json` deliberately lists **only** `firestore`. The Firebase project is shared with other apps that use Realtime Database (`database.rules.json`, if present, belongs to them and is not used here), so never add a `database` entry: a plain `firebase deploy` would overwrite their live rules.

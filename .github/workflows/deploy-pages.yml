@@ -24,11 +24,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # js/config.js is gitignored; build it from repository secrets
-      # (Settings -> Secrets and variables -> Actions). Fails the deploy if any
-      # required one is missing, rather than publishing a site that can't start.
+      # Firebase web config is public, so js/config.js may be committed. If the
+      # FIREBASE_* repository secrets are set (Settings -> Secrets and variables
+      # -> Actions) it is regenerated from them, and a partial set fails naming
+      # what's missing; otherwise the committed copy is used. Fails the deploy if
+      # neither exists, rather than publishing a site that can't start.
       - name: Generate Firebase config
-        run: node scripts/generate-config.mjs
+        run: |
+          if [ -n "$FIREBASE_API_KEY" ]; then
+            node scripts/generate-config.mjs
+          elif [ -f js/config.js ]; then
+            echo "FIREBASE_* secrets are not set; using the committed js/config.js."
+          else
+            echo "::error::js/config.js is not committed and the FIREBASE_* repository secrets are not set."
+            exit 1
+          fi
         env:
           FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
           FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}

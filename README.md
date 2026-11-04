@@ -71,7 +71,7 @@ Browsers can't read a `.env` file, so a small dependency-free script turns it in
 
 ```
 .env  ──  node scripts/generate-config.mjs  ──▶  js/config.js  ──▶  js/firebase.js
-(yours, gitignored)                              (generated, gitignored)
+(yours, gitignored)                              (generated)
 ```
 
 | Variable in `.env`             | Firebase config key  | Required |
@@ -85,14 +85,14 @@ Browsers can't read a `.env` file, so a small dependency-free script turns it in
 | `FIREBASE_APP_ID`              | `appId`              | yes      |
 | `FIREBASE_MEASUREMENT_ID`      | `measurementId`      | no       |
 
-- Real environment variables win over `.env`. That is how the GitHub Actions deploy works, with no `.env` file at all.
+- Real environment variables win over `.env`. That is how the GitHub Actions deploy can build the config from repository secrets, with no `.env` file at all.
 - The script exits with an error naming any missing variable, and never writes a half-filled config.
 - If `js/config.js` doesn't exist, the page shows a short "The app couldn't start" hint instead of hanging on "Loading…".
 - `FIREBASE_DATABASE_URL` is only for Realtime Database. This app uses Firestore, so it is accepted (so the generated config matches the console snippet) but unused.
 
 ### About the API key
 
-Firebase web config identifies your project, it does not grant access to it, and anyone who opens your site can read it from the downloaded `js/config.js`. Keeping it in `.env` keeps it out of git and makes switching projects a one-file change, but it isn't a secret. What actually protects your data is:
+Firebase web config identifies your project, it does not grant access to it, and anyone who opens your site can read it from the downloaded `js/config.js`, so committing that file is fine (this repo does). `.env` makes switching projects a one-file change, but the values in it aren't secret. What actually protects your data is:
 
 1. the [Firestore rules](#firestore-rules), and
 2. restricting the key under Google Cloud Console → APIs & Services → Credentials → your browser key → *Application restrictions → HTTP referrers*.
@@ -102,8 +102,10 @@ The dev server serves the whole project folder, so never put server-side secrets
 ## Deploy to GitHub Pages
 
 1. Push the repo to GitHub, then **Settings → Pages → Source: GitHub Actions**.
-2. **Settings → Secrets and variables → Actions → New repository secret.** Add one secret per variable in the table above, named exactly the same (`FIREBASE_DATABASE_URL` and `FIREBASE_MEASUREMENT_ID` are optional).
-3. Push to `main`. [`deploy-pages.yml`](.github/workflows/deploy-pages.yml) runs `node scripts/generate-config.mjs` with those secrets and publishes the site. If a required secret is missing the deploy **fails** and names it, rather than publishing a broken site.
+2. Give the build your Firebase config, either way:
+   - **Commit `js/config.js`** (run `node scripts/generate-config.mjs` first). This is the simplest option and needs no secrets.
+   - Or **Settings → Secrets and variables → Actions → New repository secret.** Add one secret per variable in the table above, named exactly the same (`FIREBASE_DATABASE_URL` and `FIREBASE_MEASUREMENT_ID` are optional). If `FIREBASE_API_KEY` is set, the workflow regenerates `js/config.js` from the secrets and ignores any committed copy.
+3. Push to `main`. [`deploy-pages.yml`](.github/workflows/deploy-pages.yml) builds the config from the secrets if they are set, otherwise uses the committed `js/config.js`, then publishes the site. The deploy **fails** and says why if there are no secrets and no committed `js/config.js`, or if the secrets are only partly set, rather than publishing a broken site.
 4. Add `your-name.github.io` to Firebase **Authorized domains** and to your API key's allowed referrers.
 
 On Netlify, Vercel or Firebase Hosting, set the same variables, use `node scripts/generate-config.mjs` as the build command, and publish the project root.
@@ -165,7 +167,7 @@ Comments are in `comments`, keyed to a post by `postId`. No composite indexes ar
 │   ├── firebase.js            # initializeApp + auth/db/storage singletons
 │   ├── ui.js                  # DOM helpers, modal, toast
 │   ├── admin.js               # CSV export helper (currently unused)
-│   └── config.js              # GENERATED from .env, gitignored
+│   └── config.js              # GENERATED from .env, committed (public web config)
 ├── scripts/
 │   └── generate-config.mjs    # .env -> js/config.js
 ├── .env.example               # Template for your Firebase settings
