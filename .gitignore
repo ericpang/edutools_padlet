@@ -7,7 +7,7 @@
 !.env.example
 
 # Generated from .env by scripts/generate-config.mjs
-js/config.js
+# js/config.js
 
 # Local tool state
 .claude/
